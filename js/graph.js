@@ -268,6 +268,13 @@ export function clearGraph() {
   }
   edgeLines.clear();
   for (const [id, obj] of nodeMeshes) {
+    // Remove label DOM elements before removing group from scene,
+    // otherwise CSS2DObject's 'removed' event doesn't fire on children
+    obj.group.traverse(child => {
+      if (child.element && child.element.parentNode) {
+        child.element.parentNode.removeChild(child.element);
+      }
+    });
     scene.remove(obj.group);
     obj.mesh.geometry.dispose(); obj.mat.dispose();
     obj.ring.geometry.dispose(); obj.ringMat.dispose();

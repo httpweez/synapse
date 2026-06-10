@@ -157,6 +157,11 @@
 </div>
 <script type="module" src="js/app.js"></script>
 <script>
+if (location.search.includes('reset')) {
+  localStorage.removeItem('synapse_maps');
+  history.replaceState(null, '', location.pathname);
+  location.reload();
+}
 if (location.protocol === 'file:') {
   document.getElementById('container').style.display = 'none';
   const msg = document.createElement('div');

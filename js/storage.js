@@ -41,11 +41,15 @@ export function saveMap(id, name, data) {
   return entry;
 }
 
-export function deleteMap(id) {
+export async function deleteMap(id) {
   let maps = getAll();
   maps = maps.filter(m => m.id !== id);
   saveAll(maps);
-  if (_currentMapId === id) _currentMapId = null;
+  if (_currentMapId === id) {
+    _currentMapId = null;
+    const { clearGraph } = await import('./graph.js');
+    clearGraph();
+  }
 }
 
 export function createMap(name) {
