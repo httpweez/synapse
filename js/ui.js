@@ -103,6 +103,7 @@ export function updateUI() {
 // ─── MANAGER ──────────────────────────────────────────────────────────────
 
 export function showManager() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
   document.getElementById('manager-overlay').classList.remove('hidden');
   renderManagerList();
 }
@@ -153,6 +154,7 @@ function renderManagerList() {
 
     item.querySelector('.mi-del').addEventListener('click', (e) => {
       e.stopPropagation();
+      if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
       if (confirm(`Excluir "${m.name}"? Esta ação não pode ser desfeita.`)) {
         deleteMap(m.id);
         renderManagerList();
@@ -221,6 +223,9 @@ function openMap(id) {
   document.getElementById('map-name-badge').textContent = mapData.name;
   hideManager();
   showToast(`📂 ${mapData.name} carregado`);
+  // Flush any pending save now so next auto-save uses the right ID
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  saveMap(id, _currentMapName, serializeGraph());
 }
 
 // ─── EVENT BINDING ────────────────────────────────────────────────────────
@@ -234,6 +239,7 @@ export function bindEvents() {
   document.getElementById('btn-manager').addEventListener('click', showManager);
 
   document.getElementById('manager-new').addEventListener('click', () => {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
     const entry = createMap('Novo Mapa');
     _currentMapName = entry.name;
     closePanel();
@@ -248,6 +254,7 @@ export function bindEvents() {
   });
 
   document.getElementById('manager-example').addEventListener('click', () => {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
     const entry = createMap('Construfácil - Exemplo');
     _currentMapName = entry.name;
     closePanel();
