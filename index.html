@@ -20,6 +20,8 @@
   <div id="label-canvas"></div>
 
   <div id="top-bar">
+    <button id="btn-manager" class="secondary" title="Gerenciar mapas">📂 Mapas</button>
+    <span id="map-name-badge"></span>
     <input id="search-input" type="text" placeholder="Buscar ideia..." />
     <button id="btn-new-root">+ Nova Ideia</button>
     <button id="btn-layout" class="secondary">Reorganizar</button>
@@ -94,18 +96,24 @@
 
   <div id="stats">Arraste para orbitar · Scroll para zoom<br/>Clique p/ selecionar · Direito p/ menu · F = modo foco</div>
 
-  <!-- Welcome screen -->
-  <div id="welcome">
-    <div id="welcome-box">
-      <div id="welcome-icon">🧠</div>
-      <h1 id="welcome-title">Thoughts 3D</h1>
-      <p id="welcome-sub">Mapa mental interativo em 3D</p>
-      <p id="welcome-desc">Comece adicionando sua primeira ideia ou carregue um projeto exemplo.</p>
-      <div id="welcome-buttons">
-        <button id="welcome-new" class="btn-primary">+ Primeira Ideia</button>
-        <button id="welcome-example" class="btn-secondary">📦 Carregar Exemplo</button>
+  <!-- Manager / Welcome -->
+  <div id="manager-overlay">
+    <div id="manager-box">
+      <div id="manager-icon">🧠</div>
+      <h1 id="manager-title">Thoughts 3D</h1>
+      <p id="manager-sub">Seus mapas mentais</p>
+
+      <div id="manager-list"></div>
+
+      <div id="manager-empty" class="hidden">
+        <p style="color:#64748b;font-size:13px;margin-bottom:20px;">Nenhum mapa ainda. Crie um ou carregue o exemplo.</p>
       </div>
-      <div id="welcome-tips">
+
+      <div id="manager-buttons">
+        <button id="manager-new" class="btn-primary">+ Novo Mapa</button>
+        <button id="manager-example" class="btn-secondary">📦 Carregar Exemplo</button>
+      </div>
+      <div id="manager-tips">
         <span>N</span> nova ideia · <span>R</span> reorganizar · <span>F</span> modo foco
       </div>
     </div>

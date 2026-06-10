@@ -7,12 +7,27 @@ import {
   activeFilters,
 } from './state.js';
 import {
-  getColor, updateNodeHighlight, updateNode, removeNode,
-  getNeighborIds, TYPE_COLORS, selectNode,
+  getColor, updateNodeHighlight, updateNode, removeNode, clearGraph,
+  restoreGraph, serializeGraph, getNeighborIds, TYPE_COLORS, selectNode,
 } from './graph.js';
 import { applyFilters, applyFocus } from './filters.js';
 import { camera, renderer } from './scene.js';
+import { loadInitialData } from './data.js';
+import { listMaps, loadMap, saveMap, createMap, deleteMap, renameMap, getCurrentMapId } from './storage.js';
 
+let _saveTimer = null;
+let _currentMapName = '';
+function scheduleSave() {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveTimer = null;
+    const id = getCurrentMapId();
+    if (!id) return;
+    const data = serializeGraph();
+    saveMap(id, _currentMapName, data);
+    showToast('💾 Salvo');
+  }, 2000);
+}
 
 // ─── PANEL ────────────────────────────────────────────────────────────────
 
@@ -60,15 +75,6 @@ export function closePanel() {
   for (const [id] of nodeMeshes) updateNodeHighlight(id);
 }
 
-export function showWelcome() {
-  const welcome = document.getElementById('welcome');
-  welcome.classList.remove('hidden');
-}
-
-export function hideWelcome() {
-  document.getElementById('welcome').classList.add('hidden');
-}
-
 export function showContextMenu(x, y, id) {
   setContextNodeId(id);
   const menu = document.getElementById('context-menu');
@@ -94,31 +100,165 @@ export function updateUI() {
   document.getElementById('edge-count').textContent = `${edges.length} conexões`;
 }
 
-// ─── EVENT BINDING ────────────────────────────────────────────────────────
+// ─── MANAGER ──────────────────────────────────────────────────────────────
 
-function hideWelcomeAndFocus() {
-  hideWelcome();
-  // Reorganize to spread nodes
-  if (nodes.size > 0) {
-    for (const n of nodes.values()) {
-      n.vx = (Math.random() - 0.5) * 0.5;
-      n.vy = (Math.random() - 0.5) * 0.5;
-      n.vz = (Math.random() - 0.5) * 0.5;
-    }
-    setSimRunning(true);
+export function showManager() {
+  document.getElementById('manager-overlay').classList.remove('hidden');
+  renderManagerList();
+}
+
+export function hideManager() {
+  document.getElementById('manager-overlay').classList.add('hidden');
+}
+
+function renderManagerList() {
+  const maps = listMaps();
+  const list = document.getElementById('manager-list');
+  const empty = document.getElementById('manager-empty');
+  list.innerHTML = '';
+
+  if (maps.length === 0) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  for (const m of maps) {
+    const item = document.createElement('div');
+    item.className = 'manager-item';
+    item.dataset.id = m.id;
+
+    const ago = timeAgo(m.updatedAt);
+    item.innerHTML = `
+      <div class="mi-icon">${m.nodeCount > 0 ? '🌐' : '📄'}</div>
+      <div class="mi-info">
+        <div class="mi-name">${escHtml(m.name)}</div>
+        <div class="mi-meta">${m.nodeCount} nós · ${ago}</div>
+      </div>
+      <div class="mi-actions">
+        <button class="mi-rename" title="Renomear">✏️</button>
+        <button class="mi-del" title="Excluir">🗑️</button>
+      </div>
+    `;
+
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.mi-actions')) return;
+      openMap(m.id);
+    });
+
+    item.querySelector('.mi-rename').addEventListener('click', (e) => {
+      e.stopPropagation();
+      startRename(item, m.id, m.name);
+    });
+
+    item.querySelector('.mi-del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Excluir "${m.name}"? Esta ação não pode ser desfeita.`)) {
+        deleteMap(m.id);
+        renderManagerList();
+        showToast(`"${m.name}" excluído`);
+      }
+    });
+
+    list.appendChild(item);
   }
 }
 
-export function bindEvents() {
-  // Welcome screen buttons
-  document.getElementById('welcome-new').addEventListener('click', () => {
-    hideWelcomeAndFocus();
-    document.getElementById('btn-new-root').click();
+function startRename(item, id, currentName) {
+  item.classList.add('renaming');
+  const input = document.createElement('input');
+  input.className = 'mi-rename-input';
+  input.type = 'text';
+  input.value = currentName;
+  input.style.display = 'block';
+  item.querySelector('.mi-info').appendChild(input);
+  input.focus();
+  input.select();
+
+  const finish = (save) => {
+    if (save && input.value.trim()) {
+      renameMap(id, input.value.trim());
+      showManager();
+    }
+    item.classList.remove('renaming');
+    input.remove();
+  };
+
+  input.addEventListener('blur', () => finish(false));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') finish(true);
+    if (e.key === 'Escape') finish(false);
   });
-  document.getElementById('welcome-example').addEventListener('click', () => {
-    hideWelcomeAndFocus();
-    if (window.loadExampleData) window.loadExampleData();
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `${mins} min atrás`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h atrás`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d atrás`;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function openMap(id) {
+  const mapData = loadMap(id);
+  if (!mapData) { showToast('⚠️ Mapa não encontrado'); return; }
+  closePanel();
+  clearGraph();
+  restoreGraph(mapData.data);
+  applyFilters();
+  updateUI();
+  _currentMapName = mapData.name;
+  document.getElementById('map-name-badge').textContent = mapData.name;
+  hideManager();
+  showToast(`📂 ${mapData.name} carregado`);
+}
+
+// ─── EVENT BINDING ────────────────────────────────────────────────────────
+
+function trickleSave() {
+  scheduleSave();
+}
+
+export function bindEvents() {
+  // Manager buttons
+  document.getElementById('btn-manager').addEventListener('click', showManager);
+
+  document.getElementById('manager-new').addEventListener('click', () => {
+    const entry = createMap('Novo Mapa');
+    _currentMapName = entry.name;
+    closePanel();
+    clearGraph();
     applyFilters();
+    updateUI();
+    document.getElementById('map-name-badge').textContent = entry.name;
+    hideManager();
+    showToast(`📄 "${entry.name}" criado`);
+    // Open modal for first idea
+    setTimeout(() => document.getElementById('btn-new-root').click(), 300);
+  });
+
+  document.getElementById('manager-example').addEventListener('click', () => {
+    const entry = createMap('Construfácil - Exemplo');
+    _currentMapName = entry.name;
+    closePanel();
+    clearGraph();
+    loadInitialData();
+    document.getElementById('map-name-badge').textContent = entry.name;
+    saveMap(entry.id, entry.name, serializeGraph());
+    applyFilters();
+    updateUI();
+    hideManager();
+    showToast('📦 Exemplo Construfácil carregado!');
   });
 
   // Search
@@ -209,7 +349,6 @@ export function bindEvents() {
         window._modalParent = parentId;
       } else if (action === 'focus') {
         const target = new THREE.Vector3(n.x || 0, n.y || 0, n.z || 0);
-        // Find controls via the scene's orbit controls
         import('./scene.js').then(m => { m.controls.target.copy(target); });
         showToast(`Focado em: ${n.name}`);
       } else if (action === 'delete') {
@@ -218,6 +357,7 @@ export function bindEvents() {
           showToast(`"${n.name}" removido`);
           updateUI();
           applyFilters();
+          trickleSave();
         }
       }
     });
@@ -284,7 +424,6 @@ export function bindEvents() {
     if (e.target === e.currentTarget) document.getElementById('modal-overlay').classList.remove('open');
   });
   document.getElementById('modal-confirm').addEventListener('click', async () => {
-    hideWelcome();
     const name = document.getElementById('modal-name').value.trim();
     if (!name) { showToast('O nome é obrigatório'); return; }
     const type = document.getElementById('modal-type').value;
@@ -298,6 +437,7 @@ export function bindEvents() {
     selectNode(id);
     updateUI();
     applyFilters();
+    trickleSave();
   });
   window._modalParent = null;
 
@@ -315,6 +455,7 @@ export function bindEvents() {
     document.getElementById('panel-title').textContent = name;
     document.getElementById('panel-sub').textContent = `${newType} · ID: ${selectedId}`;
     showToast('Salvo!');
+    trickleSave();
   });
 
   // Panel add child
@@ -344,6 +485,7 @@ export function bindEvents() {
       showToast(`"${name}" removido`);
       updateUI();
       applyFilters();
+      trickleSave();
     }
   });
 

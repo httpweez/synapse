@@ -3,8 +3,9 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { scene } from './scene.js';
 import {
   nodes, edges, nodeMeshes, edgeLines,
-  incNextId, selectedId, setSelectedId,
+  nextId, incNextId, selectedId, setSelectedId, setNextId,
   highlightedId, setHighlightedId,
+  setFocusMode, setFocusNeighborIds, setSearchQuery,
 } from './state.js';
 
 export const TYPE_COLORS = {
@@ -259,4 +260,53 @@ export function showContextMenu(x, y, id) {
   } else {
     _showContextMenu(x, y, id);
   }
+}
+
+export function clearGraph() {
+  for (const [key, obj] of edgeLines) {
+    scene.remove(obj.line); obj.geo.dispose(); obj.mat.dispose();
+  }
+  edgeLines.clear();
+  for (const [id, obj] of nodeMeshes) {
+    scene.remove(obj.group);
+    obj.mesh.geometry.dispose(); obj.mat.dispose();
+    obj.ring.geometry.dispose(); obj.ringMat.dispose();
+    obj.glowMat.dispose();
+  }
+  nodeMeshes.clear();
+  nodes.clear();
+  edges.splice(0, edges.length);
+  setNextId(1);
+  setSelectedId(null);
+  setFocusMode(false);
+  setFocusNeighborIds(new Set());
+  setHighlightedId(null);
+  setSearchQuery('');
+  import('./ui.js').then(m => { m.closePanel(); m.updateUI(); });
+}
+
+export function restoreGraph(data) {
+  if (!data) return;
+  setNextId(data.nextId || 1);
+  for (const n of (data.nodes || [])) {
+    nodes.set(n.id, { ...n, vx: 0, vy: 0, vz: 0, fx: 0, fy: 0, fz: 0 });
+    createNodeObject(n.id);
+  }
+  for (const e of (data.edges || [])) {
+    edges.push({ source: e.source, target: e.target });
+    createEdgeObject(e.source, e.target);
+  }
+}
+
+export function serializeGraph() {
+  const nodeArr = [];
+  for (const n of nodes.values()) {
+    nodeArr.push({
+      id: n.id, name: n.name, type: n.type, filterGroup: n.filterGroup,
+      description: n.description, impact: n.impact, problemId: n.problemId,
+      x: n.x, y: n.y, z: n.z,
+    });
+  }
+  const edgeArr = edges.map(e => ({ source: e.source, target: e.target }));
+  return { nextId, nodes: nodeArr, edges: edgeArr };
 }
