@@ -60,6 +60,15 @@ export function closePanel() {
   for (const [id] of nodeMeshes) updateNodeHighlight(id);
 }
 
+export function showWelcome() {
+  const welcome = document.getElementById('welcome');
+  welcome.classList.remove('hidden');
+}
+
+export function hideWelcome() {
+  document.getElementById('welcome').classList.add('hidden');
+}
+
 export function showContextMenu(x, y, id) {
   setContextNodeId(id);
   const menu = document.getElementById('context-menu');
@@ -87,7 +96,31 @@ export function updateUI() {
 
 // ─── EVENT BINDING ────────────────────────────────────────────────────────
 
+function hideWelcomeAndFocus() {
+  hideWelcome();
+  // Reorganize to spread nodes
+  if (nodes.size > 0) {
+    for (const n of nodes.values()) {
+      n.vx = (Math.random() - 0.5) * 0.5;
+      n.vy = (Math.random() - 0.5) * 0.5;
+      n.vz = (Math.random() - 0.5) * 0.5;
+    }
+    setSimRunning(true);
+  }
+}
+
 export function bindEvents() {
+  // Welcome screen buttons
+  document.getElementById('welcome-new').addEventListener('click', () => {
+    hideWelcomeAndFocus();
+    document.getElementById('btn-new-root').click();
+  });
+  document.getElementById('welcome-example').addEventListener('click', () => {
+    hideWelcomeAndFocus();
+    if (window.loadExampleData) window.loadExampleData();
+    applyFilters();
+  });
+
   // Search
   document.getElementById('search-input').addEventListener('input', (e) => {
     setSearchQuery(e.target.value.toLowerCase().trim());
@@ -251,6 +284,7 @@ export function bindEvents() {
     if (e.target === e.currentTarget) document.getElementById('modal-overlay').classList.remove('open');
   });
   document.getElementById('modal-confirm').addEventListener('click', async () => {
+    hideWelcome();
     const name = document.getElementById('modal-name').value.trim();
     if (!name) { showToast('O nome é obrigatório'); return; }
     const type = document.getElementById('modal-type').value;
