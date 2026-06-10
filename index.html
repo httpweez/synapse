@@ -131,5 +131,25 @@
   <div id="toast-container"></div>
 </div>
 <script type="module" src="js/app.js"></script>
+<script>
+if (location.protocol === 'file:') {
+  document.getElementById('container').style.display = 'none';
+  const msg = document.createElement('div');
+  msg.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#e2e8f0;font-family:system-ui;flex-direction:column;gap:16px;text-align:center;padding:20px;">
+      <div style="font-size:48px;">⚠️</div>
+      <h1 style="font-size:20px;font-weight:600;">Use um servidor local</h1>
+      <p style="color:#94a3b8;max-width:400px;line-height:1.6;">
+        ES Modules não funcionam com o protocolo <code>file://</code>.
+      </p>
+      <pre style="background:#1e293b;padding:12px 20px;border-radius:10px;font-size:13px;color:#60a5fa;text-align:left;">
+  cd thoughts3d && python3 -m http.server 8080
+      </pre>
+      <p style="color:#64748b;font-size:13px;">Depois abra <a href="http://localhost:8080" style="color:#60a5fa;">http://localhost:8080</a></p>
+    </div>
+  `;
+  document.body.appendChild(msg);
+}
+</script>
 </body>
 </html>
