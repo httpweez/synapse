@@ -250,15 +250,15 @@ export function bindEvents() {
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) document.getElementById('modal-overlay').classList.remove('open');
   });
-  document.getElementById('modal-confirm').addEventListener('click', () => {
+  document.getElementById('modal-confirm').addEventListener('click', async () => {
     const name = document.getElementById('modal-name').value.trim();
     if (!name) { showToast('O nome é obrigatório'); return; }
     const type = document.getElementById('modal-type').value;
     const desc = document.getElementById('modal-desc').value.trim();
     const parentId = window._modalParent || null;
     const fg = type;
-    const { addNode } = await import('./graph.js');
-    const id = addNode(name, type, desc, '', parentId, '', fg);
+    const mod = await import('./graph.js');
+    const id = mod.addNode(name, type, desc, '', parentId, '', fg);
     document.getElementById('modal-overlay').classList.remove('open');
     showToast(`"${name}" adicionado!`);
     selectNode(id);

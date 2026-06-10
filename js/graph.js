@@ -4,10 +4,8 @@ import { scene } from './scene.js';
 import {
   nodes, edges, nodeMeshes, edgeLines,
   incNextId, selectedId, setSelectedId,
-  focusMode, focusNeighborIds, setFocusNeighborIds,
   highlightedId, setHighlightedId,
 } from './state.js';
-import { showToast } from './ui.js';
 
 export const TYPE_COLORS = {
   root: '#38bdf8', idea: '#60a5fa', problem: '#ef4444',
