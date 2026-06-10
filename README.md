@@ -16,7 +16,7 @@
 
 <br/>
 
-![Synapse Screenshot](https://raw.githubusercontent.com/httpweez/synapse/main/screenshot.png)
+![Synapse Screenshot](screenshot.png)
 
 > *Mapa de diagnóstico de uma empresa fictícia — 42 nós, 60 conexões.*
 
