@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'thoughts3d_maps';
+const STORAGE_KEY = 'synapse_maps';
 let _currentMapId = null;
 
 function getAll() {

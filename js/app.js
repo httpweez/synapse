@@ -13,7 +13,7 @@ animate();
 // Show manager on startup
 showManager();
 
-console.log('✨ Thoughts 3D — Mapa Mental Interativo');
+console.log('✨ Synapse — Mapa Mental 3D');
 console.log('📂 Gerenciador de mapas mentais');
 console.log('🖱️  Clique = selecionar · Direito = menu · Scroll = zoom');
 console.log('⌨️  N = nova ideia · R = reorganizar · F = modo foco · Del = excluir');
