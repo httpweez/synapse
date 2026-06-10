@@ -113,6 +113,11 @@ export function createNodeObject(id) {
 export function removeNodeObject(id) {
   const obj = nodeMeshes.get(id);
   if (!obj) return;
+  obj.group.traverse(child => {
+    if (child.element && child.element.parentNode) {
+      child.element.parentNode.removeChild(child.element);
+    }
+  });
   scene.remove(obj.group);
   obj.mesh.geometry.dispose();
   obj.mat.dispose();
