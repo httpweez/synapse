@@ -13,7 +13,7 @@ body {
 #container { width: 100vw; height: 100vh; position: relative; }
 
 #webgl-canvas { display: block; width: 100%; height: 100%; }
-#label-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+#label-canvas { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 5; }
 #label-canvas .label { pointer-events: auto; }
 .label {
   color: #e2e8f0;
